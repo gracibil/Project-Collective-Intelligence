@@ -10,7 +10,7 @@ sites = {
     0: {
         "width": 200,
         "height": 200,
-        "center_x": 400,
+        "center_x": 200,
         "center_y": 400,
         "image": "images/site_fill.png"
     },
@@ -28,7 +28,7 @@ class AggregationConfig(Config):
     width : int = 100
     height : int  = 100
     radius : int = 100
-    movement_speed : float = 20.0
+    movement_speed : float = 5.0
     seed : int = 1
     duration : int = 0
 
@@ -43,11 +43,14 @@ class AggregationAgent(Agent[AggregationConfig]):
         self.direction = self.select_random_direction()
         self.ticks = 0
         self.next_tick_update = 0
+        self.wait_still = 100
+        self.wait_passed = 0
+
 
     def update_next_tick(self):
         # random int between 1 and 150
         self.ticks = 0
-        self.next_tick_update = random.randint(1, 150)
+        self.next_tick_update = random.randint(100, 200)
 
     def select_random_direction(self) -> Vector2:
         direction = random.choice(self.possible_directions)
@@ -141,6 +144,7 @@ class AggregationAgent(Agent[AggregationConfig]):
 
 
     def wander_loop(self):
+        print('in wander loop')
         if self.detect_aggregation_site():
             prob_join = self.calculate_prob_join()
             random_value = random.random()
@@ -150,12 +154,10 @@ class AggregationAgent(Agent[AggregationConfig]):
         self.move = self.direction
         self.pos += self.move * self.config.movement_speed
         self.there_is_no_escape()
-        self.ticks += 1
 
 
     def join_loop(self):
-        if self.ticks % 50 == 0:
-            self.state = "leave"
+        print('in join loop')
         distances_from_others = [dist for _, dist in self.in_proximity_accuracy()]
         distances_from_others.sort()
         frst_five = distances_from_others[:5]  # Get the first five distances
@@ -171,6 +173,9 @@ class AggregationAgent(Agent[AggregationConfig]):
                 self.state = "still"
                 self.freeze_movement()
         else:
+            if self.ticks == 100:
+                self.state = "wander"
+                return
             move = self.choose_direction_to_stay_within_site()
             self.pos += move * self.config.movement_speed
             self.there_is_no_escape()
@@ -178,24 +183,29 @@ class AggregationAgent(Agent[AggregationConfig]):
 
     def still_loop(self):
         self.freeze_movement()
-        prob_leave = self.calculate_prob_leave()
-        random_value = random.random()
-        if prob_leave > random_value:
-            self.state = "leave"
-            self.direction = self.select_random_direction()
-            self.continue_movement()
+        self.wait_passed += 1
+        if self.wait_passed >= self.wait_still:
+            prob_leave = self.calculate_prob_leave()
+            random_value = random.random()
+            self.wait_passed = 0
+            if prob_leave > random_value:
+                self.state = "leave"
+                self.direction = self.select_random_direction()
+
 
 
     def leave_loop(self):
+        print('in leave loop')
         # Logic to leave the aggregation site
 
-        if not self.on_site():
+        if not self.on_site() and self.ticks % 50 == 0:
             self.state = 'wander'
 
         self.pos += self.direction * self.config.movement_speed
         self.there_is_no_escape()
 
     def update(self):
+        self.ticks +=1
         if self.ticks >= self.next_tick_update:
             self.update_next_tick()
             self.direction = self.select_random_direction()
