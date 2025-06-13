@@ -27,7 +27,7 @@ sites = {
 class AggregationConfig(Config):
     width : int = 100
     height : int  = 100
-    radius : int = 50
+    radius : int = 100
     movement_speed : float = 20.0
     seed : int = 1
     duration : int = 0
@@ -80,11 +80,11 @@ class AggregationAgent(Agent[AggregationConfig]):
     def calculate_prob_leave(self) -> float:
         agents_in_proximity = self.detect_agents_in_proximity()
         prob = 1 / agents_in_proximity if agents_in_proximity > 0 else 1
-        if prob > 0.1:
-            prob = 0
-            return prob
-        else:
+        if prob < 0.1:
             return 0
+
+        return prob
+
 
     def calculate_prob_join(self) -> float:
         prob = 1 - self.calculate_prob_leave()
@@ -127,13 +127,13 @@ class AggregationAgent(Agent[AggregationConfig]):
             return Vector2(0, 0)
 
         directions = []
-        if self.pos.x < boundaries["left"]:
+        if self.pos.x <= boundaries["left"]:
             directions.append(Vector2(1, 0))
-        elif self.pos.x > boundaries["right"]:
+        elif self.pos.x >= boundaries["right"]:
             directions.append(Vector2(-1, 0))
-        if self.pos.y < boundaries["top"]:
+        if self.pos.y <= boundaries["top"]:
             directions.append(Vector2(0, 1))
-        elif self.pos.y > boundaries["bottom"]:
+        elif self.pos.y >= boundaries["bottom"]:
             directions.append(Vector2(0, -1))
 
         return random.choice(directions) if directions else Vector2(0, 0)
@@ -154,6 +154,8 @@ class AggregationAgent(Agent[AggregationConfig]):
 
 
     def join_loop(self):
+        if self.ticks % 50 == 0:
+            self.state = "leave"
         distances_from_others = [dist for _, dist in self.in_proximity_accuracy()]
         distances_from_others.sort()
         frst_five = distances_from_others[:5]  # Get the first five distances
@@ -164,7 +166,7 @@ class AggregationAgent(Agent[AggregationConfig]):
             avg_distance_from_others = fmean(frst_five) if frst_five else 0
 
         # If the agent is close by others, isn't colliding, and is within the site boundaries, it will stop moving
-        if avg_distance_from_others < 30 and not self.check_collision_with_agents() and self.on_site():
+        if avg_distance_from_others < 40 and not self.check_collision_with_agents() and self.on_site():
             if self.within_site_boundries():
                 self.state = "still"
                 self.freeze_movement()
