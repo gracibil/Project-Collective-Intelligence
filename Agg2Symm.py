@@ -28,8 +28,8 @@ sites = {
         "image": "images/site_fill.png"
     },
     1:{
-        "width": 100,
-        "height": 100,
+        "width": 200,
+        "height": 200,
         "center_x": 600,
         "center_y": 400,
         "image": "images/site_2.png"
@@ -266,7 +266,7 @@ def run_sim():
         (
             HeadlessSimulation(AggregationConfig())
             .spawn_site("images/site_fill.png", 200, 400)
-            .spawn_site("images/site_2.png", 600, 400)
+            .spawn_site("images/site_fill.png", 600, 400)
             .batch_spawn_agents(50, AggregationAgent, images=["images/triangle.png"])
             .run()
         )
@@ -279,7 +279,7 @@ def run_sim():
         }
 
 
-    with open('datapoints_30.json', 'w') as f:
+    with open('datapoints_30_symm.json', 'w') as f:
         json.dump(datapoints_collection, f, indent=4)
 
 run_sim()
