@@ -32,13 +32,6 @@ class PredatorPreyConfig(Config):
     prey_breeding_delay: int = 10  # Ticks before prey can reproduce again
 
 
-data = []
-prey_killed_this_tick = {}
-ticks = 0
-predator_alive = 0
-prey_alive = 0
-id_num = 0
-
 class CustomSimulation(Simulation):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -221,7 +214,7 @@ def run_sim():
 
 
         for x in range(len(predator_counts)):
-            simulation_run_data[x] = {'predator': predator_counts[x], 'predatr_age':predator_age_avg[x], 'prey': prey_counts[x], 'prey_age': prey_age_avg[x]}
+            simulation_run_data[x] = {'predator': predator_counts[x], 'prey': prey_counts[x]}
 
         plt.plot(frames, predator_counts, label='Predator')
         plt.plot(frames, prey_counts, label='Prey')
