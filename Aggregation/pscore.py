@@ -76,4 +76,4 @@ def plot_aggregation_stats(json_path):
     plt.show()
 
 # Usage
-plot_aggregation_stats('datapoints_30_symm.json')
+plot_aggregation_stats('../Predator_Prey_Simple/datapoints_30_symm.json')

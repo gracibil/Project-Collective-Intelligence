@@ -1,18 +1,38 @@
+import json
 from dataclasses import dataclass, field
 import random
 from statistics import fmean
 from pygame import Vector2
 from pygame.examples.moveit import WIDTH
-from vi import Agent, Config, Simulation, Window
+from vi import Agent, Config, Simulation, Window, HeadlessSimulation
 from vi.util import count, probability
+SIMULATION_NUM = 1
+
+datapoints_collection = {
+
+}
+
+datapoints ={
+    0 : {
+        'site_0': 0,
+        'site_1': 0,
+    }
+}
 
 sites = {
     0: {
         "width": 200,
         "height": 200,
-        "center_x": 400,
+        "center_x": 200,
         "center_y": 400,
         "image": "images/site_fill.png"
+    },
+    1:{
+        "width": 200,
+        "height": 200,
+        "center_x": 600,
+        "center_y": 400,
+        "image": "images/site_2.png"
     }
 }
 
@@ -20,11 +40,10 @@ sites = {
 class AggregationConfig(Config):
     width : int = 100
     height : int  = 100
-    radius : int = 50
-    movement_speed : float = 20.0
-    seed : int = 1
-    duration : int = 0
-
+    radius : int = 100
+    movement_speed : float = 5.0
+    #seed : int = 1
+    duration : int = 5001
     window : Window = field(default_factory=lambda: Window(width=800, height=800))
 
 
@@ -36,11 +55,40 @@ class AggregationAgent(Agent[AggregationConfig]):
         self.direction = self.select_random_direction()
         self.ticks = 0
         self.next_tick_update = 0
+        self.wait_still = 100
+        self.wait_passed = 0
+        self.total_ticks = 0
+
+
+    def check_on_which_site(self):
+        if self.on_site():
+            site_id = self.on_site_id()
+            return site_id
+
+
+    def update_datapoints(self):
+        # check if key for current tick exists in datapoints
+
+        if self.total_ticks not in datapoints:
+            datapoints[self.total_ticks] = {
+                'site_0': 0,
+                'site_1': 0,
+            }
+        site_id = self.check_on_which_site()
+        if site_id is not None:
+            datapoints[self.total_ticks][f'site_{site_id}'] += 1
+
+        if self.total_ticks == 5000:
+            if SIMULATION_NUM not in datapoints_collection:
+                datapoints_collection[SIMULATION_NUM] = {}
+            datapoints_collection[SIMULATION_NUM] = datapoints
+
+
 
     def update_next_tick(self):
         # random int between 1 and 150
         self.ticks = 0
-        self.next_tick_update = random.randint(1, 150)
+        self.next_tick_update = random.randint(100, 200)
 
     def select_random_direction(self) -> Vector2:
         direction = random.choice(self.possible_directions)
@@ -73,11 +121,11 @@ class AggregationAgent(Agent[AggregationConfig]):
     def calculate_prob_leave(self) -> float:
         agents_in_proximity = self.detect_agents_in_proximity()
         prob = 1 / agents_in_proximity if agents_in_proximity > 0 else 1
-        if prob > 0.1:
-            prob = 0
-            return prob
-        else:
+        if prob < 0.1:
             return 0
+
+        return prob
+
 
     def calculate_prob_join(self) -> float:
         prob = 1 - self.calculate_prob_leave()
@@ -90,7 +138,6 @@ class AggregationAgent(Agent[AggregationConfig]):
 
         for distance in distance_to_others:
             if distance < 14:  # Assuming a collision threshold of 10 pixels
-                print(f"Collision detected with another agent at distance {distance}")
                 return True
         return False
 
@@ -120,13 +167,13 @@ class AggregationAgent(Agent[AggregationConfig]):
             return Vector2(0, 0)
 
         directions = []
-        if self.pos.x < boundaries["left"]:
+        if self.pos.x <= boundaries["left"]:
             directions.append(Vector2(1, 0))
-        elif self.pos.x > boundaries["right"]:
+        elif self.pos.x >= boundaries["right"]:
             directions.append(Vector2(-1, 0))
-        if self.pos.y < boundaries["top"]:
+        if self.pos.y <= boundaries["top"]:
             directions.append(Vector2(0, 1))
-        elif self.pos.y > boundaries["bottom"]:
+        elif self.pos.y >= boundaries["bottom"]:
             directions.append(Vector2(0, -1))
 
         return random.choice(directions) if directions else Vector2(0, 0)
@@ -143,7 +190,6 @@ class AggregationAgent(Agent[AggregationConfig]):
         self.move = self.direction
         self.pos += self.move * self.config.movement_speed
         self.there_is_no_escape()
-        self.ticks += 1
 
 
     def join_loop(self):
@@ -157,11 +203,14 @@ class AggregationAgent(Agent[AggregationConfig]):
             avg_distance_from_others = fmean(frst_five) if frst_five else 0
 
         # If the agent is close by others, isn't colliding, and is within the site boundaries, it will stop moving
-        if avg_distance_from_others < 30 and not self.check_collision_with_agents() and self.on_site():
+        if avg_distance_from_others < 40 and not self.check_collision_with_agents() and self.on_site():
             if self.within_site_boundries():
                 self.state = "still"
                 self.freeze_movement()
         else:
+            if self.ticks == 100:
+                self.state = "wander"
+                return
             move = self.choose_direction_to_stay_within_site()
             self.pos += move * self.config.movement_speed
             self.there_is_no_escape()
@@ -169,24 +218,32 @@ class AggregationAgent(Agent[AggregationConfig]):
 
     def still_loop(self):
         self.freeze_movement()
-        prob_leave = self.calculate_prob_leave()
-        random_value = random.random()
-        if prob_leave > random_value:
-            self.state = "leave"
-            self.direction = self.select_random_direction()
-            self.continue_movement()
+        self.wait_passed += 1
+        if self.wait_passed >= self.wait_still:
+            prob_leave = self.calculate_prob_leave()
+            random_value = random.random()
+            self.wait_passed = 0
+            if prob_leave > random_value:
+                self.state = "leave"
+                self.direction = self.select_random_direction()
+
 
 
     def leave_loop(self):
         # Logic to leave the aggregation site
 
-        if not self.on_site():
+        if not self.on_site() and self.ticks % 50 == 0:
             self.state = 'wander'
 
         self.pos += self.direction * self.config.movement_speed
         self.there_is_no_escape()
 
     def update(self):
+        self.total_ticks += 1
+        self.ticks +=1
+        if self.total_ticks % 100 == 0:
+
+            self.update_datapoints()
         if self.ticks >= self.next_tick_update:
             self.update_next_tick()
             self.direction = self.select_random_direction()
@@ -203,11 +260,27 @@ class AggregationAgent(Agent[AggregationConfig]):
         if self.state == "leave":
             self.leave_loop()
 
+def run_sim():
+    global datapoints, SIMULATION_NUM
+    for i in range(30):
+        (
+            HeadlessSimulation(AggregationConfig())
+            .spawn_site("../images/site_fill.png", 200, 400)
+            .spawn_site("../images/site_fill.png", 600, 400)
+            .batch_spawn_agents(50, AggregationAgent, images=["images/triangle.png"])
+            .run()
+        )
+        SIMULATION_NUM +=1
+        datapoints = {
+            0: {
+                'site_0': 0,
+                'site_1': 0,
+            }
+        }
 
 
-(
-    Simulation(AggregationConfig())
-    .spawn_site("images/site_fill.png", 400, 400)
-    .batch_spawn_agents(50, AggregationAgent, images=["images/triangle.png"])
-    .run()
-)
+    with open('../Predator_Prey_Simple/datapoints_30_symm.json', 'w') as f:
+        json.dump(datapoints_collection, f, indent=4)
+
+if __name__ == "__main__":
+    run_sim()

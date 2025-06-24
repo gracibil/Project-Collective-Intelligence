@@ -106,8 +106,8 @@ class Prey(Agent[PredatorPreyConfig]):
 def run_sim():
     (
         Simulation(PredatorPreyConfig())
-        .batch_spawn_agents(100, Prey, images=["images/prey.png"])
-        .batch_spawn_agents(10, Predator, images=["images/predator.png"])
+        .batch_spawn_agents(100, Prey, images=["../images/prey.png"])
+        .batch_spawn_agents(10, Predator, images=["../images/predator.png"])
         .run()
     )
 

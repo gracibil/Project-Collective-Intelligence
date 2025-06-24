@@ -86,21 +86,24 @@ class FlockingAgent(Agent[FlockingConfig]):
 
         # TODO: Modify self.move and self.pos accordingly.
 
-
-(
-    Simulation(
-        # TODO: Modify `movement_speed` and `radius` and observe the change in behaviour.
-        FlockingConfig(
-            image_rotation=True,
-            movement_speed=500,
-            radius=200,
-            alignment_weight=0.01,
-            cohesion_weight=0.01,
-            separation_weight=0.1,
-            delta_time=1,
-            max_velocity=7.0
+def run_sim():
+    (
+        Simulation(
+            # TODO: Modify `movement_speed` and `radius` and observe the change in behaviour.
+            FlockingConfig(
+                image_rotation=True,
+                movement_speed=500,
+                radius=200,
+                alignment_weight=0.01,
+                cohesion_weight=0.01,
+                separation_weight=0.1,
+                delta_time=1,
+                max_velocity=7.0
+            )
         )
+        .batch_spawn_agents(50, FlockingAgent, images=["../images/triangle.png"])
+        .run()
     )
-    .batch_spawn_agents(50, FlockingAgent, images=["images/triangle.png"])
-    .run()
-)
+
+if __name__ == "__main__":
+    run_sim()

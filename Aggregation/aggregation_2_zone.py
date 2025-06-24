@@ -265,8 +265,8 @@ def run_sim():
     for i in range(30):
         (
             HeadlessSimulation(AggregationConfig())
-            .spawn_site("images/site_fill.png", 200, 400)
-            .spawn_site("images/site_2.png", 600, 400)
+            .spawn_site("../images/site_fill.png", 200, 400)
+            .spawn_site("../images/site_2.png", 600, 400)
             .batch_spawn_agents(50, AggregationAgent, images=["images/triangle.png"])
             .run()
         )
@@ -282,4 +282,5 @@ def run_sim():
     with open('datapoints_30.json', 'w') as f:
         json.dump(datapoints_collection, f, indent=4)
 
-run_sim()
+if __name__ == "__main__":
+    run_sim()
