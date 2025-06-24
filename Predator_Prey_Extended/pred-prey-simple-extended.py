@@ -18,7 +18,7 @@ class PredatorPreyConfig(Config):
     seed : int = 1
     duration : int = 20000
     window : Window = field(default_factory=lambda: Window(width=800, height=800))
-    max_prey_age: int = 9             # Maximum age for prey before death
+    max_prey_age: int = 12             # Maximum age for prey before death
     max_predator_age: int = 12         # Maximum age for predators before death
     predator_start_energy: int = 100    # Initial energy for predators
     predator_energy_to_hunt: int = 75  # Predator hunts when energy is below this threshold
@@ -185,7 +185,7 @@ class Prey(Agent[PredatorPreyConfig]):
 def run_sim():
         time_start = time.time()
         sim = (
-            Simulation(PredatorPreyConfig())
+            HeadlessSimulation(PredatorPreyConfig())
             .batch_spawn_agents(2000, Prey, images=["../images/prey.png"])
             .batch_spawn_agents(25, Predator, images=["../images/predator.png"])
             .run()
