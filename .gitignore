@@ -11,3 +11,4 @@ __pycache__
 
 # Violet Replays
 *.parquet
+/Predator_Prey_Simple/datapoints_30_pred_prey.json
